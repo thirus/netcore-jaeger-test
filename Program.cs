@@ -1,60 +1,48 @@
-// <copyright file="Program.cs" company="OpenTelemetry Authors">
-// Copyright The OpenTelemetry Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// </copyright>
-
 using System;
-using System.Diagnostics;
-using System.Net.Http;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using System.Net.Http;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using OpenTelemetry.Logs;
 
-public class Program
+namespace demo
 {
-    private static readonly ActivitySource MyActivitySource = new("OpenTelemetry.Demo.Jaeger");
 
-    public static async Task Main()
+    public class Program
     {
-        using var tracerProvider = Sdk.CreateTracerProviderBuilder()
-            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(
-                serviceName: "DemoApp",
-                serviceVersion: "1.0.1"))
-            .AddSource("OpenTelemetry.Demo.Jaeger")
-            .AddHttpClientInstrumentation()
-            .AddConsoleExporter()
-            .AddOtlpExporter()
-            .Build();
-
-        using var parent = MyActivitySource.StartActivity("JaegerDemo");
-
-        using (var client = new HttpClient())
+            static String serviceName = "demo";
+            static String serviceVersion = "1.0.0";
+        public static async Task Main(String[] args)
         {
-            using (var slow = MyActivitySource.StartActivity("SomethingSlow"))
-            {
-                await client.GetStringAsync("https://httpstat.us/200?sleep=1000");
-                await client.GetStringAsync("https://httpstat.us/200?sleep=1000");
-            }
-
-            using (var fast = MyActivitySource.StartActivity("SomethingFast"))
-            {
-                await client.GetStringAsync("https://httpstat.us/301");
-                await client.GetStringAsync("https://httpstat.us/200");
-            }
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+            var builder = CreateHostBuilder(args);
+            builder.Build().Run();
         }
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+           Host.CreateDefaultBuilder(args)
+                  .ConfigureLogging(logging =>
+      {
+          // logging.ClearProviders();
+          logging.AddOpenTelemetry(options =>
+          {
+              options.IncludeFormattedMessage = true;
+              options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName));
+              options.AddOtlpExporter();
+              // options.AddConsoleExporter();
+          });
+      })
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseStartup<Startup>();
+            });
     }
 }
-
