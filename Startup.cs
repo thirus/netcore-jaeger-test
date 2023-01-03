@@ -34,7 +34,10 @@ namespace demo
         {
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
             services.AddDbContext<ApplicationDbContext>(options =>
-                       options.UseNpgsql(connectionString));
+                                                        {
+                                                            // options.UseNpgsql(connectionString);
+                                                        }
+                );
             services.AddControllers();
             services.AddAuthorization();
             services.AddHealthChecks();
@@ -93,8 +96,19 @@ namespace demo
                             activity.SetTag("exceptionType", exception.GetType().ToString());
                         };
                     })
-                    .AddSqlClientInstrumentation()
+                    .AddSqlClientInstrumentation(o =>
+                    {
+                        o.SetDbStatementForText = true;
+                        o.EnableConnectionLevelAttributes = true;
+                        o.SetDbStatementForStoredProcedure = true;
+                    })
                      // .AddJaegerExporter()
+                     .AddConsoleExporter()
+                     .AddEntityFrameworkCoreInstrumentation(o =>
+                     {
+                         o.SetDbStatementForText = true;
+                         o.SetDbStatementForStoredProcedure = true;
+                     })
                      .AddOtlpExporter(o =>
                      {
                          o.Protocol = OtlpExportProtocol.HttpProtobuf;

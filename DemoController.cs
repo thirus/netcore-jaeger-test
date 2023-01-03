@@ -25,31 +25,38 @@ namespace demo
 
         private static readonly ActivitySource MyActivitySource = new("OpenTelemetry.Demo.Jaeger");
         private readonly ILogger<WeatherForecastController> _logger;
+        private readonly ApplicationDbContext _dbContext;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(ILogger<WeatherForecastController> logger, ApplicationDbContext dbContext)
         {
             _logger = logger;
+            _dbContext = dbContext;
         }
 
         [HttpPost(Name = "TestPost")]
-        public async Task<string> Post() {
+        public async Task<string> Post()
+        {
             _logger.LogInformation("hello log");
             using var client = new HttpClient();
             await client.GetStringAsync("https://httpstat.us/200");
-            return  await Task.FromResult("Okay");
+            return await Task.FromResult("Okay");
         }
 
         [HttpGet(Name = "GetWeatherForecast")]
         public async Task<IEnumerable<WeatherForecast>> Get()
         {
+            _logger.LogInformation("insert new blog");
+            _dbContext.Add(new Blog { Url = "http://blogs.msdn.com/adonet" });
+            _dbContext.SaveChanges();
+            _dbContext.Blogs.ToList();
             using var parent = MyActivitySource.StartActivity("Main");
 
             using (var client = new HttpClient())
             {
                 using (var slow = MyActivitySource.StartActivity("slow"))
                 {
-                    await client.GetStringAsync("https://httpstat.us/200?sleep=1000");
-                    await client.GetStringAsync("https://httpstat.us/200?sleep=1000");
+                    await client.GetStringAsync("https://httpstat.us/200?sleep=10");
+                    await client.GetStringAsync("https://httpstat.us/200?sleep=100");
                 }
 
                 using (var fast = MyActivitySource.StartActivity("fast"))

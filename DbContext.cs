@@ -8,11 +8,16 @@ namespace demo
     {
         public DbSet<Blog> Blogs { get; set; }
         public DbSet<Post> Posts { get; set; }
-
+        public string DbPath { get; }
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
+            var folder = Environment.SpecialFolder.LocalApplicationData;
+            var path = Environment.GetFolderPath(folder);
+            DbPath = System.IO.Path.Join(path, "demo.db");
         }
+        protected override void OnConfiguring(DbContextOptionsBuilder options)
+       => options.UseSqlite($"Data Source={DbPath}");
     }
 }
 
