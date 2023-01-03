@@ -45,7 +45,8 @@ namespace demo
             var serviceName = "demo";
             var serviceVersion = "1.0.0";
             services.AddOpenTelemetry()
-                .WithTracing(builder => builder
+                .WithTracing(builder =>
+                    builder
                     .AddSource(serviceName)
                     .SetResourceBuilder(
                         ResourceBuilder.CreateDefault()
@@ -102,24 +103,27 @@ namespace demo
                         o.EnableConnectionLevelAttributes = true;
                         o.SetDbStatementForStoredProcedure = true;
                     })
-                     // .AddJaegerExporter()
-                     // .AddConsoleExporter()
-                     .AddEntityFrameworkCoreInstrumentation(o =>
+                    .AddEntityFrameworkCoreInstrumentation(o =>
                      {
                          o.SetDbStatementForText = true;
                          o.SetDbStatementForStoredProcedure = true;
                      })
-                     .AddOtlpExporter(o =>
-                     {
-                         o.Protocol = OtlpExportProtocol.HttpProtobuf;
-                     })
-            )
-        .StartWithHost();
+                    .AddJaegerExporter(o =>
+                    {
+                        o.Protocol = JaegerExportProtocol.HttpBinaryThrift;
+                        // OTEL_EXPORTER_JAEGER_ENDPOINT=http://localhost:14268/api/traces
+                        o.Endpoint = new Uri("http://localhost:14268/api/traces");
+                    })
+                // .AddOtlpExporter(o =>
+                // {
+                //     o.Protocol = OtlpExportProtocol.HttpProtobuf;
+                // })
+                ).StartWithHost();
 
             services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "aspnetcoreapp", Version = "v1" });
-            });
+                {
+                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "aspnetcoreapp", Version = "v1" });
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
