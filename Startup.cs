@@ -21,6 +21,7 @@ namespace demo
 {
     public class Startup
     {
+        static readonly ActivitySource a = new ActivitySource("demo");
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -38,7 +39,7 @@ namespace demo
             var serviceName = "demo";
             var serviceVersion = "1.0.0";
             services.AddOpenTelemetry()
-        .WithTracing(builder => builder
+                .WithTracing(builder => builder
                     .AddSource(serviceName)
                     .SetResourceBuilder(
                         ResourceBuilder.CreateDefault()
@@ -49,28 +50,39 @@ namespace demo
                     {
                         o.EnrichWithHttpRequest = async (activity, httpRequest) =>
                         {
+                            var r = a.StartActivity("request/response", ActivityKind.Consumer);
+                            httpRequest.HttpContext.Items["__r"] = r;
                             if (httpRequest.Method == "POST")
                             {
-                                // httpRequest.EnableBuffering();
                                 var body = await new StreamReader(httpRequest.Body)
                                                                     .ReadToEndAsync();
-                                // httpRequest.Body.Position = 0;
                                 // activity.SetTag("requestBody", body);
                                 var tags = new ActivityTagsCollection {
-                                  {"request", body},
+                                  {"body", body},
                                 };
-                                activity.AddEvent(new ActivityEvent("request", DateTime.UtcNow, tags));
+                                // activity.AddEvent(new ActivityEvent("request", DateTime.UtcNow, tags));
                                 //("request.body", body));
+                                r?.AddEvent(new ActivityEvent("request", DateTime.UtcNow, tags));
                             }
                         };
-                        o.EnrichWithHttpResponse = (activity, httpResponse) =>
+                        o.EnrichWithHttpResponse = async (activity, httpResponse) =>
                         {
                             // activity.SetTag("responseLength", httpResponse.ContentLength);
-                                var tags = new ActivityTagsCollection {
-                                  {"response", "NA"},
+                            string body = "NA";
+                            // httpResponse.HttpContext.Request.EnableRewind()
+                            if (httpResponse.Body.CanRead)
+                            {
+                                body = await new StreamReader(httpResponse.Body).ReadToEndAsync();
+                            }
+                            var tags = new ActivityTagsCollection {
+                                  {"body", body},
                                   {"length", httpResponse.ContentLength?.ToString()},
                                 };
-                                activity.AddEvent(new ActivityEvent("response", DateTime.UtcNow, tags));
+                            // activity.AddEvent(new ActivityEvent("response", DateTime.UtcNow, tags));
+                            // using var r = a.StartActivity("request/response", ActivityKind.Consumer);
+                            var r = httpResponse.HttpContext.Items["__r"] as Activity;
+                            r?.AddEvent(new ActivityEvent("response", DateTime.UtcNow, tags));
+                            r?.Dispose();
                         };
                         o.EnrichWithException = (activity, exception) =>
                         {

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
+using OpenTelemetry.Extensions;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Logs;
@@ -36,7 +37,8 @@ namespace demo
           {
               options.IncludeFormattedMessage = true;
               options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName));
-              options.AddOtlpExporter();
+              // options.AddOtlpExporter();
+              options.AttachLogsToActivityEvent();
               // options.AddConsoleExporter();
           });
       })
