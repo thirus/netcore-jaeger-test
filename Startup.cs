@@ -15,7 +15,7 @@ using OpenTelemetry.Exporter;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Microsoft.OpenApi.Models;
-
+using Microsoft.EntityFrameworkCore;
 
 namespace demo
 {
@@ -32,6 +32,9 @@ namespace demo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            services.AddDbContext<ApplicationDbContext>(options =>
+                       options.UseNpgsql(connectionString));
             services.AddControllers();
             services.AddAuthorization();
             services.AddHealthChecks();
