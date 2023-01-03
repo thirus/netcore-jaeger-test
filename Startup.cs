@@ -103,7 +103,7 @@ namespace demo
                         o.SetDbStatementForStoredProcedure = true;
                     })
                      // .AddJaegerExporter()
-                     .AddConsoleExporter()
+                     // .AddConsoleExporter()
                      .AddEntityFrameworkCoreInstrumentation(o =>
                      {
                          o.SetDbStatementForText = true;
